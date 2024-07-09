@@ -1,0 +1,3 @@
+/mnt/d/daniels_programs/from_the_site/academics/cs/data_structures/spring 24 ds/מטלות/DSwet1S24/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/mnt/d/daniels_programs/from_the_site/academics/cs/data_structures/spring 24 ds/מטלות/DSwet1S24/cmake-build-debug/CMakeFiles/edit_cache.dir
+/mnt/d/daniels_programs/from_the_site/academics/cs/data_structures/spring 24 ds/מטלות/DSwet1S24/cmake-build-debug/CMakeFiles/DSwet1S24.dir

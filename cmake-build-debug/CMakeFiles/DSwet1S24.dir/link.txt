@@ -1,0 +1,1 @@
+/usr/bin/c++  -g   CMakeFiles/DSwet1S24.dir/code/main24b1.cpp.o CMakeFiles/DSwet1S24.dir/code/pirates24b1.cpp.o  -o DSwet1S24 
