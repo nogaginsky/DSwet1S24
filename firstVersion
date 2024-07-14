@@ -1,0 +1,453 @@
+#include <iostream>
+#include <vector>
+#include <memory>
+
+using namespace std;
+
+enum StatusType {
+    SUCCESS,
+    ALLOCATION_ERROR,
+    INVALID_INPUT,
+    FAILURE
+};
+
+template <class T>
+class Output_t {
+    StatusType m_currStat;
+    T m_ans;
+public:
+    Output_t(StatusType stat, const T& val=0) : m_currStat(stat), m_ans(val) {}
+    ~Output_t() {}
+    T getData() const{
+        return m_ans;
+    }
+    StatusType getOther() const{
+        return m_currStat;
+    }
+};
+
+template<typename Key, typename Value>
+class AVLNode {
+public:
+    Key key;
+    Value value;
+    shared_ptr<AVLNode> left;
+    shared_ptr<AVLNode> right;
+    int height;
+    AVLNode(const Key& k, const Value& v)
+            : key(k), value(v), left(nullptr), right(nullptr), height(1) {}
+};
+
+template<typename Key, typename Value>
+class AVLTree {
+    shared_ptr<AVLNode<Key, Value>> root;
+
+    int height(shared_ptr<AVLNode<Key, Value>> node) {
+        return node ? node->height : 0;
+    }
+
+    int balanceFactor(shared_ptr<AVLNode<Key, Value>> node) {
+        return height(node->left) - height(node->right);
+    }
+
+    void updateHeight(shared_ptr<AVLNode<Key, Value>> node) {
+        node->height = 1 + max(height(node->left), height(node->right));
+    }
+
+    shared_ptr<AVLNode<Key, Value>> rotateRight(shared_ptr<AVLNode<Key, Value>> y) {
+        shared_ptr<AVLNode<Key, Value>> x = y->left;
+        shared_ptr<AVLNode<Key, Value>> T2 = x->right;
+        x->right = y;
+        y->left = T2;
+        updateHeight(y);
+        updateHeight(x);
+        return x;
+    }
+
+    shared_ptr<AVLNode<Key, Value>> rotateLeft(shared_ptr<AVLNode<Key, Value>> x) {
+        shared_ptr<AVLNode<Key, Value>> y = x->right;
+        shared_ptr<AVLNode<Key, Value>> T2 = y->left;
+        y->left = x;
+        x->right = T2;
+        updateHeight(x);
+        updateHeight(y);
+        return y;
+    }
+
+    shared_ptr<AVLNode<Key, Value>> balance(shared_ptr<AVLNode<Key, Value>> node) {
+        updateHeight(node);
+        if (balanceFactor(node) > 1) {
+            if (balanceFactor(node->left) < 0) {
+                node->left = rotateLeft(node->left);
+            }
+            return rotateRight(node);
+        }
+        if (balanceFactor(node) < -1) {
+            if (balanceFactor(node->right) > 0) {
+                node->right = rotateRight(node->right);
+            }
+            return rotateLeft(node);
+        }
+        return node;
+    }
+
+    shared_ptr<AVLNode<Key, Value>> insert(shared_ptr<AVLNode<Key, Value>> node, const Key& key, const Value& value) {
+        if (!node) return make_shared<AVLNode<Key, Value>>(key, value);
+
+        if (key < node->key)
+            node->left = insert(node->left, key, value);
+        else if (key > node->key)
+            node->right = insert(node->right, key, value);
+        else
+            node->value = value;
+
+        return balance(node);
+    }
+
+    shared_ptr<AVLNode<Key, Value>> minValueNode(shared_ptr<AVLNode<Key, Value>> node) {
+        shared_ptr<AVLNode<Key, Value>> current = node;
+        while (current->left != nullptr)
+            current = current->left;
+        return current;
+    }
+
+    shared_ptr<AVLNode<Key, Value>> remove(shared_ptr<AVLNode<Key, Value>> node, const Key& key) {
+        if (!node) return node;
+        if (key < node->key)
+            node->left = remove(node->left, key);
+        else if (key > node->key)
+            node->right = remove(node->right, key);
+        else {
+            if (!node->left) {
+                return node->right;
+            } else if (!node->right) {
+                return node->left;
+            }
+
+            shared_ptr<AVLNode<Key, Value>> temp = minValueNode(node->right);
+            node->key = temp->key;
+            node->value = temp->value;
+            node->right = remove(node->right, temp->key);
+        }
+        return balance(node);
+    }
+
+    shared_ptr<AVLNode<Key, Value>> find(shared_ptr<AVLNode<Key, Value>> node, const Key& key) const {
+        if (!node) return nullptr;
+        if (key < node->key)
+            return find(node->left, key);
+        else if (key > node->key)
+            return find(node->right, key);
+        else
+            return node;
+    }
+
+    const Value& returnMax(shared_ptr<AVLNode<Key, Value>> node) const{
+        if (!(node->right)) return node->value;
+        return returnMax(node->right);
+    }
+
+    Value& returnMax(shared_ptr<AVLNode<Key, Value>> node) {
+        if (!(node->right)) return node->value;
+        return returnMax(node->right);
+    }
+    const Value& returnMin(shared_ptr<AVLNode<Key, Value>> node) const{
+        if (!(node->left)) return node->value;
+        return returnMax(node->left);
+    }
+
+    Value& returnMin(shared_ptr<AVLNode<Key, Value>> node) {
+        if (!(node->left)) return node->value;
+        return returnMax(node->left);
+    }
+
+
+public:
+    AVLTree() : root(nullptr) {}
+
+    Value& get_val(const Key& key) {
+        std::shared_ptr<AVLNode<Key, Value>> node = find(root, key);
+        if (!node) {
+            throw std::bad_alloc();
+        }
+        return node->value;
+    }
+
+    const Value& get_val(const Key& key) const {
+        std::shared_ptr<AVLNode<Key, Value>> node = find(root, key);
+        if (!node) {
+            throw std::bad_alloc();
+        }
+        return node->value;
+    }
+
+    const Value& getMax() const{
+        return returnMax(root);
+    }
+
+    Value& getMax(){
+        return returnMax(root);
+    }
+    const Value& getMin() const{
+        return returnMin(root);
+    }
+
+    Value& getMin(){
+        return returnMin(root);
+    }
+    void insert(const Key& key, const Value& value) {
+        root = insert(root, key, value);
+    }
+
+    void remove(const Key& key) {
+        root = remove(root, key);
+    }
+
+    bool find(const Key& key, Value& value) const {
+        shared_ptr<AVLNode<Key, Value>> node = find(root, key);
+        if (node) {
+            value = node->value;
+            return true;
+        }
+        return false;
+    }
+
+    shared_ptr<AVLNode<Key, Value>> getRoot() const {
+        return root;
+    }
+
+    bool exists(const Key& key) const {
+        return find(root, key) != nullptr;
+    }
+
+    bool treeEmpty() const {
+        return (root == nullptr);
+    }
+
+    shared_ptr<AVLNode<Key, Value>> maxValueNode(shared_ptr<AVLNode<Key, Value>> node) {
+        shared_ptr<AVLNode<Key, Value>> current = node;
+        while (current->left != nullptr)
+            current = current->left;
+        return current;
+    }
+};
+
+class Pirate {
+    int id;
+    int treasure;
+    int curr;
+public:
+    Pirate(int pirateId, int pirateTreasure = 0) : id(pirateId), treasure(pirateTreasure), curr(0) {}
+    int getTreasure() const {
+        return treasure;
+    }
+    Pirate& setSeniorityIndex(int num){
+        this->curr=num;
+        return *this;
+    }
+    int getSeniorityIndex() const{
+        return curr;
+    }
+    void addCoins(int val){
+        treasure=treasure+val;
+    }
+    int getId() const{
+        return id;
+    }
+};
+
+class Ship {
+    int id;
+    int pirateCounter;
+    int cannons;
+    AVLTree<int, Pirate> pirates;
+    AVLTree<int, int> coins;
+    AVLTree<int, int> seniority;
+    int curr;
+    void addValueToPirateTree(shared_ptr<AVLNode<int, Pirate>> node, int value) {
+        if (!node) return;
+        node->value.addCoins(value);
+        addValueToPirateTree(node->left, value);
+        addValueToPirateTree(node->right, value);
+    }
+public:
+    Ship(int shipId, int numOfCannons) : id(shipId), pirateCounter(0), cannons(numOfCannons), curr(0) {}
+    int getSeniority() const{
+        return curr;
+    }
+    void add_pirate(shared_ptr<Pirate> pirate) {
+        curr+=1;
+        pirate->setSeniorityIndex(curr);
+        coins.insert(pirate->getTreasure(), pirate->getSeniorityIndex());
+        seniority.insert(pirate->getSeniorityIndex(), pirate->getId());
+        pirates.insert(pirate->getId(), *pirate);
+        pirateCounter++;
+    }
+
+    int getPirates() const {
+        return pirateCounter;
+    }
+
+    int getCannons() const {
+        return cannons;
+    }
+
+    int getId() const {
+        return id;
+    }
+
+    bool isEmpty() const {
+        return (pirateCounter == 0);
+    }
+
+    const Pirate& getRichestPirate() const {
+        return pirates.get_val(coins.getMax());
+    }
+
+    int getRichestId() {
+        return pirates.getMax().getSeniorityIndex();
+    }
+
+    void remove_pirate(shared_ptr<Pirate> pirate) {
+        if (!pirates.treeEmpty()){
+            seniority.remove(pirate->getSeniorityIndex());
+            coins.remove(pirate->getTreasure());
+            pirates.remove(pirate->getSeniorityIndex());
+        }
+    }
+
+    shared_ptr<Pirate> getPirate(int pirateId) const {
+        return make_shared<Pirate>(pirates.get_val(pirateId));
+    }
+
+    void addTreasure(int value) {
+        addValueToPirateTree(pirates.getRoot(), value);
+    }
+    int getOldestPirateId() const{
+        int id=seniority.getMin();
+        return id;
+    }
+};
+
+class ocean_t {
+    AVLTree<int, shared_ptr<Ship>> ships;
+    AVLTree<int, int> pirates;
+public:
+    StatusType add_ship(int shipId, int numOfCannons) {
+        if (shipId <= 0 || numOfCannons < 0) return INVALID_INPUT;
+        if (ships.exists(shipId)) return FAILURE;
+        ships.insert(shipId, make_shared<Ship>(shipId, numOfCannons));
+        return SUCCESS;
+    }
+
+    StatusType remove_ship(int shipId) {
+        if (shipId <= 0) return INVALID_INPUT;
+        if (!ships.exists(shipId)) return FAILURE;
+        ships.remove(shipId);
+        return SUCCESS;
+    }
+
+    StatusType add_pirate(int pirateId, int shipId, int treasure) {
+        if (pirateId <= 0 || shipId <= 0) return INVALID_INPUT;
+        if (pirates.exists(pirateId) || !ships.exists(shipId)) return FAILURE;
+        shared_ptr<Pirate> pirate = make_shared<Pirate>(pirateId, treasure);
+        ships.get_val(shipId)->add_pirate(pirate);
+        pirates.insert(pirateId, shipId);
+
+        return SUCCESS;
+    }
+
+    StatusType remove_pirate(int pirateId) {
+        if (pirateId <= 0) return INVALID_INPUT;
+        if (!pirates.exists(pirateId)) return FAILURE;
+        int shipId = pirates.get_val(pirateId);
+        shared_ptr<Pirate> pirate = ships.get_val(shipId)->getPirate(pirateId);
+        ships.get_val(shipId)->remove_pirate(pirate);
+        pirates.remove(pirateId);
+        return SUCCESS;
+    }
+
+    StatusType pirateTreasure(int pirateId, int treasure) {
+        if (pirateId <= 0 || treasure <= 0) return INVALID_INPUT;
+        if (!pirates.exists(pirateId)) return FAILURE;
+        int shipId = pirates.get_val(pirateId);
+        shared_ptr<Pirate> pirate = ships.get_val(shipId)->getPirate(pirateId);
+        pirate->addCoins(treasure);
+        return SUCCESS;
+    }
+
+    StatusType shipTreasure(int shipId, int treasure) {
+        if (shipId <= 0 || treasure <= 0) return INVALID_INPUT;
+        if (!ships.exists(shipId)) return FAILURE;
+        shared_ptr<Ship> ship = ships.get_val(shipId);
+        ship->addTreasure(treasure);
+        return SUCCESS;
+    }
+
+    Output_t<int> get_treasure(int pirateId) const {
+        if (pirateId <= 0) return Output_t<int>(INVALID_INPUT);
+        if (!pirates.exists(pirateId)) return Output_t<int>(FAILURE);
+        int shipId = pirates.get_val(pirateId);
+        shared_ptr<Pirate> pirate= ships.get_val(shipId)->getPirate(pirateId);
+        return Output_t<int>(SUCCESS, pirate->getTreasure());
+    }
+
+    Output_t<int> get_cannons(int shipId) const {
+        if (shipId <= 0) return Output_t<int>(INVALID_INPUT);
+        return Output_t<int>(SUCCESS, ships.get_val(shipId)->getCannons());
+    }
+
+    Output_t<int> get_richest_pirate(int shipId) {
+        if (shipId <= 0) {
+            return Output_t<int>(INVALID_INPUT);
+        }
+        if (!ships.exists(shipId) || ships.get_val(shipId)->isEmpty()) return Output_t<int>(FAILURE);
+        int id=ships.get_val(shipId)->getRichestId();
+        return Output_t<int>(SUCCESS, ships.get_val(shipId)->getRichestId());
+    }
+
+    StatusType ships_battle(int sourceShipId, int destShipId){
+        if(sourceShipId<=0 || destShipId<=0 || sourceShipId==destShipId) INVALID_INPUT;
+        shared_ptr<Ship> ship1=ships.get_val(sourceShipId);
+        shared_ptr<Ship> ship2=ships.get_val(destShipId);
+        int min1= ( ship1->getPirates() > ship1->getCannons())  ? ship1->getCannons() : ship1->getPirates();
+        int min2= ( ship2->getPirates() > ship2->getCannons())  ? ship2->getCannons() : ship2->getPirates();
+        if (min1 < min2){
+            int val=ship1->getPirates();
+            ship2->addTreasure(val);
+            val = (-1)*(ship2->getPirates());
+            ship1->addTreasure(val);
+        }
+        else if (min2 < min1) {
+            int val = ship2->getPirates();
+            ship1->addTreasure(val);
+            val = (-1)*(ship1->getPirates());
+            ship2->addTreasure(val);
+        }
+        return SUCCESS;
+    }
+
+    StatusType treason(int sourceShipId, int destShipId){
+        if(sourceShipId<=0 || sourceShipId==destShipId || destShipId<=0){
+            return INVALID_INPUT;
+        }
+        shared_ptr<Ship> ship1=ships.get_val(sourceShipId);
+        shared_ptr<Ship> ship2=ships.get_val(destShipId);
+        int relocatePirId=ship1->getOldestPirateId();
+        shared_ptr<Pirate> pirate=ship1->getPirate(relocatePirId);
+        ship2->add_pirate(pirate);
+        ship1->remove_pirate(pirate);
+        return SUCCESS;
+    }
+
+    StatusType update_pirate_treasure(int pirateId , int change){
+        if (pirateId<=0) return INVALID_INPUT;
+        if (!pirates.exists(pirateId)) return FAILURE;
+        int id=pirates.get_val(pirateId);
+        shared_ptr<Ship> ship=ships.get_val(id);
+        shared_ptr<Pirate> pirate=ship->getPirate(pirateId);
+        pirate->addCoins(change);
+        return SUCCESS;
+    }
+};
+
